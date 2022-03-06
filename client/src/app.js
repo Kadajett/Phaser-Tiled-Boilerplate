@@ -2,6 +2,13 @@ import Phaser from "phaser";
 import "./styles/base.css";
 import MageCityImage from "./assets/magecitycut.png";
 import GoblinImage from "./assets/goblin.png";
+import {
+  CharactersInitializer,
+  loadNPCImages,
+  loadNPCAnimations,
+  updateCharacters,
+} from "./characters";
+
 import Beginnings from "./assets/maps/Beginning/map_beginning.json";
 import { groupBy } from "./utils/array";
 
@@ -33,8 +40,14 @@ const GM = {
   game: game,
   player: null,
   cursors: null,
+  keys: {},
   map: null,
   scene: scene,
+  interactable: [],
+  gameState: {
+    gold: 0,
+    inventory: [],
+  },
 };
 
 function loadCharacterImages(PhaserContext) {
@@ -42,6 +55,8 @@ function loadCharacterImages(PhaserContext) {
     frameWidth: 64,
     frameHeight: 64,
   });
+
+  loadNPCImages(PhaserContext);
 }
 
 function loadMapImages(PhaserContext) {
@@ -49,6 +64,7 @@ function loadMapImages(PhaserContext) {
 }
 
 const loadCharacterSprites = (PhaserContext) => {
+  loadNPCAnimations(PhaserContext);
   GM.player = PhaserContext.physics.add.sprite(1100, 200, "goblin");
   PhaserContext.anims.create({
     key: "left",
@@ -130,9 +146,21 @@ function preload() {
   loadMapImages(this);
 }
 
+function sortedIndex(array, value) {
+  var low = 0,
+    high = array.length;
+
+  while (low < high) {
+    var mid = (low + high) >>> 1;
+    if ((array[mid]?.distance || 0) < value) low = mid + 1;
+    else high = mid;
+  }
+  return low;
+}
+
 const setupPlayer = (PhaserContext) => {
   loadCharacterSprites(PhaserContext);
-  GM.player.setCollideWorldBounds(true);
+  CharactersInitializer(GM.objectLayer.objects);
   GM.player.body.setSize(30, 30, 20, 20);
   window.player = GM.player;
 
@@ -148,14 +176,21 @@ let graphics = null;
 
 function create() {
   graphics = this.add.graphics();
-  console.log("graphics", graphics);
   const layers = {};
 
   Beginnings.layers.forEach((layer) => {
-    layers[layer.name] = {
-      data: groupBy(layer.data, Beginnings.width, Beginnings.height),
-      properties: layer.properties,
-    };
+    if (layer.type === "tilelayer") {
+      layers[layer.name] = {
+        data: groupBy(layer.data, Beginnings.width, Beginnings.height),
+        properties: layer.properties,
+      };
+    }
+    if (layer.type === "objectgroup") {
+      GM.objectLayer = {
+        objects: layer.objects,
+        properties: layer.properties,
+      };
+    }
   });
 
   const map = this.make.tilemap({
@@ -165,14 +200,15 @@ function create() {
     width: Beginnings.width,
     height: Beginnings.height,
   });
-
+  GM.map = map;
+  console.log("Map Width: ", Beginnings.width * 32);
+  console.log("Map Height: ", Beginnings.height * 32);
   const tileset = map.addTilesetImage("city");
 
   const tileLayer = {};
   let CollisionLayer = {};
 
   for (const layer in layers) {
-    console.log(layers[layer]);
     const layerData = layers[layer].data;
     const layerProperties = {};
     if (layers[layer].properties?.length) {
@@ -186,17 +222,20 @@ function create() {
     if (layerProperties.Collidable) {
       tileLayer[layer].setCollisionByExclusion([-1]);
       CollisionLayer = tileLayer[layer];
+      CollisionLayer._alpha = 0;
+      // CollisionLayer.setOpacity(0);
     }
     if (layerProperties.PlayerLayer) {
       GM.cursors = this.input.keyboard.createCursorKeys();
+      GM.keys.spacebar = this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.SPACE
+      );
       setupPlayer(this);
       this.physics.add.collider(GM.player, CollisionLayer);
       const playerLayerIndex = map.getLayerIndexByName("PlayerLayer");
-      console.log(map.layers[playerLayerIndex]);
       map.layers[playerLayerIndex].data.forEach((column) => {
         column.forEach((tile) => {
           if (tile.index !== -1) {
-            console.log("tile", tile);
             GM.player.x = tile.pixelX;
             GM.player.y = tile.pixelY;
           }
@@ -204,29 +243,88 @@ function create() {
       });
     }
   }
-  return;
-  pathLayer.putTilesAt(pathTile, 0, 0, true);
-
-  const collisionLayer = map.createBlankLayer("collision", tileset);
-  collisionLayer.putTilesAt(collisionTile, 0, 0, true);
-
-  collisionLayer.setCollisionByExclusion([-1]);
-
-  //   GM.player = this.physics.add.sprite(0, 0, GM.player.sprite);
-
-  setupPlayer(this);
-  this.physics.add.collider(GM.player, collisionLayer);
-  const foliageLayer = map.createBlankLayer("foliage", tileset);
-  foliageLayer.putTilesAt(foliagetile, 0, 0, true);
-
-  const foliageTopLayer = map.createBlankLayer("foliageTop", tileset);
-  foliageTopLayer.putTilesAt(foliageTop, 0, 0, true);
-  //   this.cameras.main.centerOn(GM.player.x, GM.player.y);
+  const interactText = this.add.text(350, 270, "Interact", {
+    font: "16px Courier",
+    fill: "#00ff00",
+  });
+  const goldText = this.add.text(350, window.innerHeight - 20, "Gold: 0", {
+    font: "16px Courier",
+    fill: "#00ff00",
+  });
+  goldText.setScrollFactor(0);
+  GM.UI = {
+    interactText,
+    goldText,
+  };
 }
+
+const handleInteraction = (interaction) => {
+  switch (interaction.type) {
+    case "CollectItem":
+      interaction.contents.forEach((item) => {
+        switch (item.type) {
+          case "Gold":
+            GM.gameState.gold += item.amount;
+            break;
+            case "Item":
+              GM.gameState.inventory.push(item);
+            break;
+          default:
+            break;
+        }
+      });
+      break;
+    default:
+      break;
+  }
+};
 
 let previousState = "idle";
 
 function update() {
+  if (GM.map) {
+    GM.npcs = updateCharacters(this, GM.map);
+    GM.interactable = [];
+    GM.npcs.forEach((npc) => {
+      if (!npc) {
+        return;
+      }
+      const distance = Phaser.Math.Distance.Between(
+        npc.x,
+        npc.y,
+        GM.player.x,
+        GM.player.y
+      );
+      if (distance < 64) {
+        if (GM.interactable.length === 0 && npc.isInteractable) {
+          GM.interactable.push({ npc, distance });
+        } else if (npc.isInteractable) {
+          const index = sortedIndex(GM.interactable, distance);
+          GM.interactable.splice(index, 0, { npc, distance });
+        }
+      } else {
+        GM.UI.interactText.setText("");
+      }
+    });
+    if (GM.interactable.length > 0) {
+      const nearest = GM.interactable[0];
+      if (nearest) {
+        GM.UI.interactText.setText("Interact");
+        GM.UI.interactText.x = nearest.npc.x;
+        GM.UI.interactText.y = nearest.npc.y;
+        if (GM.keys.spacebar.isDown) {
+          const interaction = GM.interactable[0].npc.interact(this);
+          if (interaction) {
+            handleInteraction(interaction);
+          }
+        }
+      } else {
+        GM.UI.setText("");
+      }
+    }
+  } else {
+    console.log("no map");
+  }
   GM.player.setVelocity(0);
   let currentState = "idle";
 
@@ -284,6 +382,10 @@ function update() {
       }
       break;
   }
+  const itemText = GM.gameState.inventory.map((item) => item.name).join(", ");
+  GM.UI.goldText.setText(`Gold: ${GM.gameState.gold} Items: ${itemText}`);
+
+  // GM.UI.goldText.y = window.innerHeight;
 
   //   if (GM.cursors.left.isDown && !GM.cursors.right.isDown) {
   //     GM.player.anims.play('right', true);

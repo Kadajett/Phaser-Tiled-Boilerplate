@@ -3,6 +3,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 module.exports = {
   mode: "development",
+  devtool: "source-map",
   entry: "./client/src/app.js",
   output: {
     path: path.resolve(__dirname, "public"),
@@ -41,6 +42,7 @@ module.exports = {
   devServer: {
     client: {
       progress: true,
+      
       reconnect: true,
     },
     static: {
