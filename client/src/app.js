@@ -2,8 +2,14 @@ import Phaser from "phaser";
 import "./styles/base.css";
 import MageCityImage from "./assets/magecitycut.png";
 import GoblinImage from "./assets/goblin.png";
+import GoblinSheet from "./assets/goblinSheet.png";
+import GoblinGlob from "./assets/goblinSheet.json";
+import newMapImageBottom from "./assets/farm_bottom.png";
+import newMapImageTop from "./assets/farm_top.png";
+import { LAYER_DEPTHS } from "./Constants";
 import {
   CharactersInitializer,
+  initNPCs,
   loadNPCImages,
   loadNPCAnimations,
   updateCharacters,
@@ -51,97 +57,40 @@ const GM = {
 };
 
 function loadCharacterImages(PhaserContext) {
-  PhaserContext.load.spritesheet("goblin", GoblinImage, {
-    frameWidth: 64,
-    frameHeight: 64,
-  });
+  const group = PhaserContext.add.group();
+  GM.group = group;
+  // PhaserContext.load.spritesheet("goblin", GoblinImage, {
+  //   frameWidth: 64,
+  //   frameHeight: 64,
+  // });
+  PhaserContext.load.aseprite("goblin", GoblinSheet, GoblinGlob);
+  
 
-  loadNPCImages(PhaserContext);
+
+  loadNPCImages(PhaserContext, group);
 }
 
 function loadMapImages(PhaserContext) {
   PhaserContext.load.image("city", MageCityImage);
+  PhaserContext.load.image("farm_bottom", newMapImageBottom);
+  // PhaserContext.load.image("farm_top", newMapImageTop);
 }
 
 const loadCharacterSprites = (PhaserContext) => {
-  loadNPCAnimations(PhaserContext);
+  
+  PhaserContext.anims.createFromAseprite("goblin");
+  
   GM.player = PhaserContext.physics.add.sprite(1100, 200, "goblin");
-  PhaserContext.anims.create({
-    key: "left",
-    frames: PhaserContext.anims.generateFrameNumbers("goblin", {
-      start: 33,
-      end: 37,
-    }),
-    frameRate: 10,
-    repeat: -1,
-  });
-  PhaserContext.anims.create({
-    key: "right",
-    frames: PhaserContext.anims.generateFrameNumbers("goblin", {
-      start: 11,
-      end: 15,
-    }),
-    frameRate: 10,
-    repeat: -1,
-  });
-  PhaserContext.anims.create({
-    key: "up",
-    frames: PhaserContext.anims.generateFrameNumbers("goblin", {
-      start: 22,
-      end: 26,
-    }),
-    frameRate: 10,
-    repeat: -1,
-  });
-  PhaserContext.anims.create({
-    key: "down",
-    frames: PhaserContext.anims.generateFrameNumbers("goblin", {
-      start: 0,
-      end: 4,
-    }),
-    frameRate: 10,
-    repeat: -1,
-  });
-  //   idle states
-  PhaserContext.anims.create({
-    key: "idle_left",
-    frames: PhaserContext.anims.generateFrameNumbers("goblin", {
-      start: 38,
-      end: 38,
-    }),
-    frameRate: 10,
-    repeat: -1,
-  });
-  PhaserContext.anims.create({
-    key: "idle_right",
-    frames: PhaserContext.anims.generateFrameNumbers("goblin", {
-      start: 16,
-      end: 16,
-    }),
-    frameRate: 10,
-    repeat: -1,
-  });
-  PhaserContext.anims.create({
-    key: "idle_up",
-    frames: PhaserContext.anims.generateFrameNumbers("goblin", {
-      start: 27,
-      end: 27,
-    }),
-    frameRate: 10,
-    repeat: -1,
-  });
-  PhaserContext.anims.create({
-    key: "idle_down",
-    frames: PhaserContext.anims.generateFrameNumbers("goblin", {
-      start: 6,
-      end: 6,
-    }),
-    frameRate: 10,
-    repeat: -1,
-  });
+  GM.group.add(GM.player);
+  // GM.player = GM.group.create(1100, 200, "goblin");
+  GM.player.play("DownIdle");
+  loadNPCAnimations(PhaserContext, GM.group);
+  // GM.group.sort();
 };
 
 function preload() {
+
+  window.PhaserContext = this;
   loadCharacterImages(this);
   loadMapImages(this);
 }
@@ -160,9 +109,10 @@ function sortedIndex(array, value) {
 
 const setupPlayer = (PhaserContext) => {
   loadCharacterSprites(PhaserContext);
-  CharactersInitializer(GM.objectLayer.objects);
+  
   GM.player.body.setSize(30, 30, 20, 20);
   window.player = GM.player;
+  GM.player.setDepth(LAYER_DEPTHS.PLAYER);
 
   GM.player.body.width = 20;
   GM.player.body.height = 20;
@@ -178,19 +128,27 @@ function create() {
   graphics = this.add.graphics();
   const layers = {};
 
-  Beginnings.layers.forEach((layer) => {
+  Beginnings.layers.forEach((layer, index) => {
     if (layer.type === "tilelayer") {
+      if(index === 0) {
+        let mapBottomImage = this.add.image(0, 0, "farm_bottom").setOrigin(0, 0);
+        mapBottomImage.setScale(1);
+      }
       layers[layer.name] = {
         data: groupBy(layer.data, Beginnings.width, Beginnings.height),
         properties: layer.properties,
+        rest: layer
       };
     }
     if (layer.type === "objectgroup") {
+      
       GM.objectLayer = {
         objects: layer.objects,
         properties: layer.properties,
       };
     }
+
+    
   });
 
   const map = this.make.tilemap({
@@ -219,10 +177,15 @@ function create() {
 
     tileLayer[layer] = map.createBlankLayer(layer, tileset);
     tileLayer[layer].putTilesAt(layerData, 0, 0, true);
+    if(!layers[layer].visible) {
+      let hideLayer = tileLayer[layer];
+      hideLayer._alpha = 0;
+      
+    }
     if (layerProperties.Collidable) {
       tileLayer[layer].setCollisionByExclusion([-1]);
       CollisionLayer = tileLayer[layer];
-      CollisionLayer._alpha = 0;
+      CollisionLayer._alpha = 0.5;
       // CollisionLayer.setOpacity(0);
     }
     if (layerProperties.PlayerLayer) {
@@ -231,6 +194,7 @@ function create() {
         Phaser.Input.Keyboard.KeyCodes.SPACE
       );
       setupPlayer(this);
+      
       this.physics.add.collider(GM.player, CollisionLayer);
       const playerLayerIndex = map.getLayerIndexByName("PlayerLayer");
       map.layers[playerLayerIndex].data.forEach((column) => {
@@ -241,21 +205,28 @@ function create() {
           }
         });
       });
+
+      
     }
   }
   const interactText = this.add.text(350, 270, "Interact", {
     font: "16px Courier",
     fill: "#00ff00",
   });
+  interactText.setDepth(LAYER_DEPTHS.UI);
   const goldText = this.add.text(350, window.innerHeight - 20, "Gold: 0", {
     font: "16px Courier",
     fill: "#00ff00",
   });
+  goldText.setDepth(LAYER_DEPTHS.UI);
   goldText.setScrollFactor(0);
   GM.UI = {
     interactText,
     goldText,
   };
+
+  CharactersInitializer(GM.objectLayer.objects, this, GM.group);
+  initNPCs();
 }
 
 const handleInteraction = (interaction) => {
@@ -283,12 +254,14 @@ let previousState = "idle";
 
 function update() {
   if (GM.map) {
-    GM.npcs = updateCharacters(this, GM.map);
+    GM.npcs = updateCharacters(this, GM.map, GM.group);
     GM.interactable = [];
-    GM.npcs.forEach((npc) => {
+    GM.npcs.forEach((obj) => {
+      let npc = obj.instance;
       if (!npc) {
         return;
       }
+      
       const distance = Phaser.Math.Distance.Between(
         npc.x,
         npc.y,
@@ -297,7 +270,7 @@ function update() {
       );
       if (distance < 64) {
         if (GM.interactable.length === 0 && npc.isInteractable) {
-          GM.interactable.push({ npc, distance });
+          GM.interactable.push({ npc: obj, distance });
         } else if (npc.isInteractable) {
           const index = sortedIndex(GM.interactable, distance);
           GM.interactable.splice(index, 0, { npc, distance });
@@ -310,10 +283,10 @@ function update() {
       const nearest = GM.interactable[0];
       if (nearest) {
         GM.UI.interactText.setText("Interact");
-        GM.UI.interactText.x = nearest.npc.x;
-        GM.UI.interactText.y = nearest.npc.y;
+        GM.UI.interactText.x = nearest.npc.instance.x;
+        GM.UI.interactText.y = nearest.npc.instance.y;
         if (GM.keys.spacebar.isDown) {
-          const interaction = GM.interactable[0].npc.interact(this);
+          const interaction = GM.interactable[0].npc?.interact?.(this);
           if (interaction) {
             handleInteraction(interaction);
           }
@@ -348,36 +321,36 @@ function update() {
   switch (currentState) {
     case "left":
       GM.player.setVelocityX(-config.player_speed);
-      GM.player.anims.play("left", true);
+      GM.player.play("LeftWalk", true)
       break;
     case "right":
       GM.player.setVelocityX(config.player_speed);
-      GM.player.anims.play("right", true);
+      GM.player.play("RightWalk", true);
       break;
     case "up":
-      GM.player.anims.play("up", true);
+      GM.player.play("UpWalk", true);
       GM.player.setVelocityY(-config.player_speed);
       break;
     case "down":
-      GM.player.anims.play("down", true);
+      GM.player.play("DownWalk", true);
       GM.player.setVelocityY(config.player_speed);
       break;
     default:
       switch (previousState) {
         case "left":
-          GM.player.anims.play("idle_left", true);
+          GM.player.play("LeftIdle", true);
           break;
         case "right":
-          GM.player.anims.play("idle_right", true);
+          GM.player.play("RightIdle", true);
           break;
         case "up":
-          GM.player.anims.play("idle_up", true);
+          GM.player.play("UpIdle", true);
           break;
         case "down":
-          GM.player.anims.play("idle_down", true);
+          GM.player.play("DownIdle", true);
           break;
         default:
-          GM.player.anims.play("idle_down", true);
+          GM.player.play("DownIdle", true);
           break;
       }
       break;
@@ -388,7 +361,7 @@ function update() {
   // GM.UI.goldText.y = window.innerHeight;
 
   //   if (GM.cursors.left.isDown && !GM.cursors.right.isDown) {
-  //     GM.player.anims.play('right', true);
+  //     GM.player.play('right', true);
   //     GM.player.setVelocityX(-config.player_speed);
   //   }
   //   if (GM.cursors.right.isDown && !GM.cursors.left.isDown) {

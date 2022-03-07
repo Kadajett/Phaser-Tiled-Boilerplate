@@ -1,48 +1,90 @@
-import Bunny from "./Bunny";
+import Bunny from "./Bunny/Bunny";
 import Chest from "./Chest";
+import Tree from "./Tree/Tree";
 const CharactersConfigs = {
-  Bunny: Bunny,
-  Chest: Chest,
+    Bunny: Bunny,
+  //   Chest: Chest,
+  TreeTop: Tree,
 };
+const CharacterInstances = {};
+let npcsInitialized = false;
 
 let npcArray = [];
 
-const CharactersInitializer = (objectLayer) => {
-  objectLayer.forEach((object) => {
-    const Character = CharactersConfigs[object.name];
+const CharactersInitializer = (objectLayer, PhaserContext, group) => {
+  console.log("CharactersInitializer");
+  objectLayer.forEach((object, index) => {
+    console.log("Initializing Object: ", object.name, CharactersConfigs);
+    if (!CharactersConfigs[object.name]) {
+      return;
+    }
+    const Character = new CharactersConfigs[object.name](object);
+
+    // Character.loadImages()
+    // Character.loadAnimations()
     if (Character) {
-      Character(object);
+      Character.object = object;
+      console.log("Initialized Character: ", Character);
+      CharacterInstances[object.name + index] = Character;
+    } else {
+      console.error("Character not found: ", object.name);
     }
   });
+
   // Object.keys(CharactersConfigs).forEach((key) => {
   //     CharactersConfigs[key](objectLayer);
   // });
 };
 
-const loadNPCImages = (PhaserContext) => {
+const loadNPCImages = (PhaserContext, group) => {
+  console.log("loadNPCImages");
   Object.keys(CharactersConfigs).forEach((key) => {
-    CharactersConfigs[key].loadImages(PhaserContext);
+    const tempChar = new CharactersConfigs[key]();
+    tempChar.loadImages(group);
   });
 };
 
-const loadNPCAnimations = (PhaserContext) => {
+const loadNPCAnimations = (PhaserContext, group) => {
+  console.log("loadNPCAnimations", CharacterInstances);
+
   Object.keys(CharactersConfigs).forEach((key) => {
-    CharactersConfigs[key].loadAnimations(PhaserContext);
+    const tempChar = new CharactersConfigs[key]();
+    tempChar.loadAnimations(group);
+    tempChar.delete?.();
   });
 };
 
-const updateCharacters = (PhaserContext, map) => {
+const updateCharacters = (PhaserContext, map, group) => {
+  //   console.log("updateCharacters");
   npcArray = [];
-  Object.keys(CharactersConfigs).forEach((key) => {
-    npcArray.push(CharactersConfigs[key].update(PhaserContext, map));
-   
-  });
+  if (npcsInitialized) {
+    Object.keys(CharacterInstances).forEach((key) => {
+      // console.log("updateCharacters", key);
+      // console.log("updateCharacters result", CharacterInstances[key].update(map, group));
+      CharacterInstances[key].update(map, group);
+      npcArray.push(CharacterInstances[key]);
+    });
+  }
+
   return npcArray;
+};
+
+const initNPCs = () => {
+  console.log("initNPCs");
+  if (!npcsInitialized) {
+    Object.keys(CharacterInstances).forEach((key) => {
+      CharacterInstances[key].loadImages();
+      CharacterInstances[key].loadAnimations();
+      CharacterInstances[key].setMapPosition(CharacterInstances[key].object);
+    });
+    npcsInitialized = true;
+  }
 };
 
 export {
   loadNPCImages,
   loadNPCAnimations,
+  initNPCs,
   CharactersInitializer,
   updateCharacters,
 };
