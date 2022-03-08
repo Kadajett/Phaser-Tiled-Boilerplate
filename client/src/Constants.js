@@ -1,10 +1,11 @@
 const LAYER_DEPTHS = {
   GROUND: 0,
-  OBJECTS: 1,
-  PLAYER: 2,
-  TOP_SHADOW: 3,
-  TOP: 4,
-  UI: 5,
+  OBJECTS_SHADOW: 1,
+  OBJECTS: 2,
+  PLAYER: 3,
+  TOP_SHADOW: 4,
+  TOP: 5,
+  UI: 6,
 };
 
 export { LAYER_DEPTHS };

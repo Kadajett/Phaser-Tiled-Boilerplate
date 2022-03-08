@@ -1,10 +1,12 @@
 import Bunny from "./Bunny/Bunny";
 import Chest from "./Chest";
 import Tree from "./Tree/Tree";
+import Knight from "./Knight/Knight";
 const CharactersConfigs = {
-    Bunny: Bunny,
+  Bunny: Bunny,
   //   Chest: Chest,
   TreeTop: Tree,
+  Knight,
 };
 const CharacterInstances = {};
 let npcsInitialized = false;

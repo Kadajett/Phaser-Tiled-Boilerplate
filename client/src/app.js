@@ -23,6 +23,8 @@ var config = {
   width: window.innerWidth,
   height: window.innerHeight,
   player_speed: 200,
+  interactionSpeed: 3000,
+  canInteract: true,
   physics: {
     default: "arcade",
     arcade: {
@@ -81,6 +83,8 @@ const loadCharacterSprites = (PhaserContext) => {
   PhaserContext.anims.createFromAseprite("goblin");
   
   GM.player = PhaserContext.physics.add.sprite(1100, 200, "goblin");
+  GM.player.strength = 15;
+  GM.player.health = 100;
   GM.group.add(GM.player);
   // GM.player = GM.group.create(1100, 200, "goblin");
   GM.player.play("DownIdle");
@@ -220,9 +224,16 @@ function create() {
   });
   goldText.setDepth(LAYER_DEPTHS.UI);
   goldText.setScrollFactor(0);
+  const healthText = this.add.text(350, window.innerHeight - 40, "Health: 100", {
+    font: "16px Courier",
+    fill: "#00ff00",
+  });
+  healthText.setDepth(LAYER_DEPTHS.UI);
+  healthText.setScrollFactor(0);
   GM.UI = {
     interactText,
     goldText,
+    healthText,
   };
 
   CharactersInitializer(GM.objectLayer.objects, this, GM.group);
@@ -245,6 +256,9 @@ const handleInteraction = (interaction) => {
         }
       });
       break;
+      case "Attack":
+        GM.player.health -= interaction?.data?.strength;
+        break;
     default:
       break;
   }
@@ -285,11 +299,15 @@ function update() {
         GM.UI.interactText.setText("Interact");
         GM.UI.interactText.x = nearest.npc.instance.x;
         GM.UI.interactText.y = nearest.npc.instance.y;
-        if (GM.keys.spacebar.isDown) {
-          const interaction = GM.interactable[0].npc?.interact?.(this);
+        if (GM.keys.spacebar.isDown && config.canInteract) {
+          config.canInteract = false;
+          const interaction = GM.interactable[0].npc?.interact?.(GM.player);
           if (interaction) {
             handleInteraction(interaction);
           }
+          setTimeout(() => {
+            config.canInteract = true;
+          }, config.interactionSpeed);
         }
       } else {
         GM.UI.setText("");
@@ -357,7 +375,7 @@ function update() {
   }
   const itemText = GM.gameState.inventory.map((item) => item.name).join(", ");
   GM.UI.goldText.setText(`Gold: ${GM.gameState.gold} Items: ${itemText}`);
-
+  GM.UI.healthText.setText(`Health: ${GM.player.health}`);
   // GM.UI.goldText.y = window.innerHeight;
 
   //   if (GM.cursors.left.isDown && !GM.cursors.right.isDown) {

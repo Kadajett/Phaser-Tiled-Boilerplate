@@ -297,6 +297,74 @@
                  "width":0,
                  "x":2786.91362298771,
                  "y":1274.01765622295
+                }, 
+                {
+                 "height":588.541,
+                 "id":26,
+                 "name":"Knight",
+                 "properties":[
+                        {
+                         "name":"health",
+                         "type":"int",
+                         "value":50
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":645.664,
+                 "x":620.564226415094,
+                 "y":1329.40961078414
+                }, 
+                {
+                 "height":588.541,
+                 "id":27,
+                 "name":"Knight",
+                 "properties":[
+                        {
+                         "name":"health",
+                         "type":"int",
+                         "value":50
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":645.664,
+                 "x":1292.19309953263,
+                 "y":1334.60261753505
+                }, 
+                {
+                 "height":588.541,
+                 "id":28,
+                 "name":"Knight",
+                 "properties":[
+                        {
+                         "name":"health",
+                         "type":"int",
+                         "value":90
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":645.664,
+                 "x":1955.16696139865,
+                 "y":1336.33361978536
+                }, 
+                {
+                 "height":588.541,
+                 "id":29,
+                 "name":"Knight",
+                 "properties":[
+                        {
+                         "name":"health",
+                         "type":"int",
+                         "value":50
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":645.664,
+                 "x":1951.70495689804,
+                 "y":732.213834429635
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -329,7 +397,7 @@
          "y":0
         }],
  "nextlayerid":16,
- "nextobjectid":22,
+ "nextobjectid":30,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.8.2",
