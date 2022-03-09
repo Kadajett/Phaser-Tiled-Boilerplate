@@ -2,11 +2,13 @@ import Bunny from "./Bunny/Bunny";
 import Chest from "./Chest";
 import Tree from "./Tree/Tree";
 import Knight from "./Knight/Knight";
+import SkeletonOld from "./OldManSkelly/OldManSkelly";
 const CharactersConfigs = {
   Bunny: Bunny,
   //   Chest: Chest,
   TreeTop: Tree,
   Knight,
+  SkeletonOld,
 };
 const CharacterInstances = {};
 let npcsInitialized = false;
@@ -77,6 +79,7 @@ const initNPCs = () => {
     Object.keys(CharacterInstances).forEach((key) => {
       CharacterInstances[key].loadImages();
       CharacterInstances[key].loadAnimations();
+      // console.log("object", CharacterInstances[key].object);
       CharacterInstances[key].setMapPosition(CharacterInstances[key].object);
     });
     npcsInitialized = true;

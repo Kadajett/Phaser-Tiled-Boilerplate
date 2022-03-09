@@ -1,5 +1,6 @@
 var path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const WorkboxPlugin = require('workbox-webpack-plugin');
 
 module.exports = {
   mode: "development",
@@ -16,6 +17,13 @@ module.exports = {
       chunks: ["index"],
       filename: "index.html",
     }),
+    // new WorkboxPlugin.GenerateSW({
+    //   // these options encourage the ServiceWorkers to get in there fast
+    //   // and not allow any straggling "old" SWs to hang around
+    //   maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 4 MB
+    //   // clientsClaim: true,
+    //   // skipWaiting: true,
+    // }),
   ],
   module: {
     rules: [

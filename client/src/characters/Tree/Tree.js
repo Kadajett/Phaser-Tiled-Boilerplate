@@ -63,8 +63,8 @@ function Tree(obj) {
       this.instance.depth = LAYER_DEPTHS.TOP;
       this.instance.shadow.setAlpha(0.3);
       this.instance.shadow.x = obj.x + 32;
-      this.instance.shadow.y = obj.y - 32;
-      this.instance.shadow.setScale(randomScale);
+      this.instance.shadow.y = obj.y - 16;
+      this.instance.shadow.setScale(randomScale + 0.5);
       this.instance.shadow.setDepth(LAYER_DEPTHS.TOP_SHADOW);
       this.instance.shadow.setTint(0x000000);
 

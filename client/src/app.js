@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import TagTextPlugin from "phaser3-rex-plugins/plugins/tagtext-plugin.js";
 import "./styles/base.css";
 import MageCityImage from "./assets/magecitycut.png";
 import GoblinImage from "./assets/goblin.png";
@@ -7,6 +8,9 @@ import GoblinGlob from "./assets/goblinSheet.json";
 import newMapImageBottom from "./assets/farm_bottom.png";
 import newMapImageTop from "./assets/farm_top.png";
 import { LAYER_DEPTHS } from "./Constants";
+import UIScene from "./Scenes/UI";
+import eventsCenter from "./utils/EventSystem";
+
 import {
   CharactersInitializer,
   initNPCs,
@@ -25,24 +29,35 @@ var config = {
   player_speed: 200,
   interactionSpeed: 3000,
   canInteract: true,
+  plugins: {
+    global: [
+      {
+        key: "rexTagTextPlugin",
+        plugin: TagTextPlugin,
+        start: true,
+      },
+    ],
+  },
   physics: {
     default: "arcade",
+    // debug: true,
     arcade: {
+      // debug: true,
       gravity: { y: 0, x: 0 },
     },
   },
-  scene: {
-    preload: preload,
-    create: create,
-    update: update,
-  },
+  scene: [
+    {
+      preload: preload,
+      create: create,
+      update: update,
+    },
+    UIScene,
+  ],
 };
 
 var game = new Phaser.Game(config);
 const scene = new Phaser.Scene();
-scene.preload = preload;
-scene.create = create;
-scene.update = update;
 
 const GM = {
   game: game,
@@ -66,8 +81,6 @@ function loadCharacterImages(PhaserContext) {
   //   frameHeight: 64,
   // });
   PhaserContext.load.aseprite("goblin", GoblinSheet, GoblinGlob);
-  
-
 
   loadNPCImages(PhaserContext, group);
 }
@@ -79,9 +92,8 @@ function loadMapImages(PhaserContext) {
 }
 
 const loadCharacterSprites = (PhaserContext) => {
-  
   PhaserContext.anims.createFromAseprite("goblin");
-  
+
   GM.player = PhaserContext.physics.add.sprite(1100, 200, "goblin");
   GM.player.strength = 15;
   GM.player.health = 100;
@@ -93,7 +105,6 @@ const loadCharacterSprites = (PhaserContext) => {
 };
 
 function preload() {
-
   window.PhaserContext = this;
   loadCharacterImages(this);
   loadMapImages(this);
@@ -113,14 +124,14 @@ function sortedIndex(array, value) {
 
 const setupPlayer = (PhaserContext) => {
   loadCharacterSprites(PhaserContext);
-  
-  GM.player.body.setSize(30, 30, 20, 20);
+
+  GM.player.body.setSize(GM.player.width * 0.5, GM.player.height * 0.5);
   window.player = GM.player;
   GM.player.setDepth(LAYER_DEPTHS.PLAYER);
 
-  GM.player.body.width = 20;
-  GM.player.body.height = 20;
-  GM.player.body.offset.x = 10;
+  // GM.player.body.width = 20;
+  // GM.player.body.height = 20;
+  // GM.player.body.offset.x = 10;
   GM.player.body.offset.y = 40;
 
   PhaserContext.cameras.main.startFollow(GM.player);
@@ -134,25 +145,25 @@ function create() {
 
   Beginnings.layers.forEach((layer, index) => {
     if (layer.type === "tilelayer") {
-      if(index === 0) {
-        let mapBottomImage = this.add.image(0, 0, "farm_bottom").setOrigin(0, 0);
+      if (index === 0) {
+        let mapBottomImage = this.add
+          .image(0, 0, "farm_bottom")
+          .setOrigin(0, 0);
         mapBottomImage.setScale(1);
       }
       layers[layer.name] = {
         data: groupBy(layer.data, Beginnings.width, Beginnings.height),
         properties: layer.properties,
-        rest: layer
+        rest: layer,
       };
     }
     if (layer.type === "objectgroup") {
-      
       GM.objectLayer = {
         objects: layer.objects,
         properties: layer.properties,
       };
     }
-
-    
+    // this.scene.pause();
   });
 
   const map = this.make.tilemap({
@@ -181,10 +192,9 @@ function create() {
 
     tileLayer[layer] = map.createBlankLayer(layer, tileset);
     tileLayer[layer].putTilesAt(layerData, 0, 0, true);
-    if(!layers[layer].visible) {
+    if (!layers[layer].visible) {
       let hideLayer = tileLayer[layer];
       hideLayer._alpha = 0;
-      
     }
     if (layerProperties.Collidable) {
       tileLayer[layer].setCollisionByExclusion([-1]);
@@ -198,7 +208,7 @@ function create() {
         Phaser.Input.Keyboard.KeyCodes.SPACE
       );
       setupPlayer(this);
-      
+
       this.physics.add.collider(GM.player, CollisionLayer);
       const playerLayerIndex = map.getLayerIndexByName("PlayerLayer");
       map.layers[playerLayerIndex].data.forEach((column) => {
@@ -209,8 +219,6 @@ function create() {
           }
         });
       });
-
-      
     }
   }
   const interactText = this.add.text(350, 270, "Interact", {
@@ -224,10 +232,15 @@ function create() {
   });
   goldText.setDepth(LAYER_DEPTHS.UI);
   goldText.setScrollFactor(0);
-  const healthText = this.add.text(350, window.innerHeight - 40, "Health: 100", {
-    font: "16px Courier",
-    fill: "#00ff00",
-  });
+  const healthText = this.add.text(
+    350,
+    window.innerHeight - 40,
+    "Health: 100",
+    {
+      font: "16px Courier",
+      fill: "#00ff00",
+    }
+  );
   healthText.setDepth(LAYER_DEPTHS.UI);
   healthText.setScrollFactor(0);
   GM.UI = {
@@ -238,6 +251,7 @@ function create() {
 
   CharactersInitializer(GM.objectLayer.objects, this, GM.group);
   initNPCs();
+  this.scene.launch("UIScene", { someVal: 132 });
 }
 
 const handleInteraction = (interaction) => {
@@ -246,19 +260,37 @@ const handleInteraction = (interaction) => {
       interaction.contents.forEach((item) => {
         switch (item.type) {
           case "Gold":
+            eventsCenter.emit("chat-event", {
+              message: `<class="success">You found ${item.amount} gold!</class>`,
+            });
             GM.gameState.gold += item.amount;
             break;
-            case "Item":
-              GM.gameState.inventory.push(item);
+          case "Item":
+            eventsCenter.emit("chat-event", {
+              message: `<class="success">You found ${item.name}!</class>`,
+            });
+            GM.gameState.inventory.push(item);
             break;
           default:
             break;
         }
       });
       break;
-      case "Attack":
-        GM.player.health -= interaction?.data?.strength;
-        break;
+    case "Attack":
+      eventsCenter.emit("chat-event", {
+        message: `<class="info">You attacked:</class> ${interaction.target}!`,
+      });
+      eventsCenter.emit("chat-event", {
+        message: `(New: <class="error"> ${GM.player.health - interaction?.data?.strength}) </class> - ${interaction.target}: ${interaction?.data?.newHealth}`,
+      });
+      GM.player.health -= interaction?.data?.strength;
+      break;
+    case "chat":
+      eventsCenter.emit("chat-event", {
+        message: `<class="info">${interaction.target}:</class> ${interaction.message}`,
+        // message: `<class="info">h</class>ello`
+      });
+      break;
     default:
       break;
   }
@@ -275,14 +307,14 @@ function update() {
       if (!npc) {
         return;
       }
-      
+
       const distance = Phaser.Math.Distance.Between(
         npc.x,
         npc.y,
         GM.player.x,
         GM.player.y
       );
-      if (distance < 64) {
+      if (distance < 100) {
         if (GM.interactable.length === 0 && npc.isInteractable) {
           GM.interactable.push({ npc: obj, distance });
         } else if (npc.isInteractable) {
@@ -339,7 +371,7 @@ function update() {
   switch (currentState) {
     case "left":
       GM.player.setVelocityX(-config.player_speed);
-      GM.player.play("LeftWalk", true)
+      GM.player.play("LeftWalk", true);
       break;
     case "right":
       GM.player.setVelocityX(config.player_speed);

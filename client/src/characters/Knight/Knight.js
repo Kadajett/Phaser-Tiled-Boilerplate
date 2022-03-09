@@ -69,12 +69,14 @@ function Knight(obj) {
   this.interact = (player) => {
     console.log("interact");
     this.config.health -= player.strength;
-    if (this.config.health <= 0) {
+    if (this.config.health <= 0 && this.config.alive) {
       this.config.alive = false;
+      this.instance.isInteractable = false;
       this.playDeathAnimation();
       // this.instance.play({ key: "death", repeat: -1 });
       // this.instance.shadow.play({ key: "death", repeat: -1 });
       return {
+        target: "knight",
         type: "CollectItem",
         contents: [
           {
@@ -90,9 +92,11 @@ function Knight(obj) {
       }
     }
     return {
+      target: "knight",
       type: "Attack",
       data: {
         strength: this.config.strength,
+        newHealth: this.config.health,
       },
     };
   };
@@ -129,6 +133,7 @@ function Knight(obj) {
       "Knight"
     );
     this.instance.shadow._alpha = 0.2;
+    this.instance.body.setSize(this.instance.width * 0.5, this.instance.height * 0.5);
     this.instance.isInteractable = true;
     this.instance.setScale(3);
     this.instance.anims.timeScale = 2;
@@ -267,6 +272,13 @@ function Knight(obj) {
   };
 
   this.setMapPosition = (obj) => {
+    if(obj?.properties) {
+      obj.properties.forEach((property) => {
+        if (property.name === "health") {
+          this.config.health = property.value;
+        }
+      });
+    }
     if (obj?.x && this?.instance?.setScale) {
       this.config.bounds.Tx = obj.x;
       this.config.bounds.Bx = obj.x + obj.width;
