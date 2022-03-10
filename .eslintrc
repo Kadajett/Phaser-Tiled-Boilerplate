@@ -1,0 +1,10 @@
+{
+  "extends": ["airbnb", "airbnb-babel"],
+  "rules": {
+    "no-unused-expressions": "on",
+    "@typescript-eslint/no-unused-expressions": "error"
+  },
+  "parserOptions": {
+    "parser": "babel-eslint"
+  }
+}

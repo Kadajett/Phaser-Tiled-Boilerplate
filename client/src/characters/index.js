@@ -53,7 +53,7 @@ const loadNPCAnimations = (PhaserContext, group) => {
 
   Object.keys(CharactersConfigs).forEach((key) => {
     const tempChar = new CharactersConfigs[key]();
-    tempChar.loadAnimations(group);
+    tempChar.loadAnimations(group, PhaserContext);
     tempChar.delete?.();
   });
 };

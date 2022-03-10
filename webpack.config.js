@@ -1,6 +1,6 @@
 var path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const WorkboxPlugin = require('workbox-webpack-plugin');
+const WorkboxPlugin = require("workbox-webpack-plugin");
 
 module.exports = {
   mode: "development",
@@ -28,6 +28,15 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.(glsl|frag|vert)$/,
+        exclude: /node_modules/,
+        loader: "glslify-import-loader",
+      },
+      {
+        test: /\.(vert|frag)$/i,
+        use: "raw-loader",
+      },
+      {
         test: /\.css$/i,
         use: ["style-loader", "css-loader"],
       },
@@ -50,7 +59,7 @@ module.exports = {
   devServer: {
     client: {
       progress: true,
-      
+
       reconnect: true,
     },
     static: {

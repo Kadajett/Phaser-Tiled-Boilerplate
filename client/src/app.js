@@ -10,7 +10,8 @@ import newMapImageTop from "./assets/farm_top.png";
 import { LAYER_DEPTHS } from "./Constants";
 import UIScene from "./Scenes/UI";
 import eventsCenter from "./utils/EventSystem";
-
+// import ToonifyPipelinePlugin from "phaser3-rex-plugins/plugins/toonifypipeline-plugin.js";
+import ToonifyPipelinePlugin from "./utils/Shaders/Test";
 import {
   CharactersInitializer,
   initNPCs,
@@ -31,6 +32,11 @@ var config = {
   canInteract: true,
   plugins: {
     global: [
+      {
+        key: "rexToonifyPipeline",
+        plugin: ToonifyPipelinePlugin,
+        start: true,
+      },
       {
         key: "rexTagTextPlugin",
         plugin: TagTextPlugin,
@@ -141,6 +147,8 @@ let graphics = null;
 
 function create() {
   graphics = this.add.graphics();
+
+  // this.game.renderer.addPipeline("outline", new OutlinePipelineRed(this.game));
   const layers = {};
 
   Beginnings.layers.forEach((layer, index) => {
@@ -280,10 +288,6 @@ const handleInteraction = (interaction) => {
       eventsCenter.emit("chat-event", {
         message: `<class="info">You attacked:</class> ${interaction.target}!`,
       });
-      eventsCenter.emit("chat-event", {
-        message: `(New: <class="error"> ${GM.player.health - interaction?.data?.strength}) </class> - ${interaction.target}: ${interaction?.data?.newHealth}`,
-      });
-      GM.player.health -= interaction?.data?.strength;
       break;
     case "chat":
       eventsCenter.emit("chat-event", {
@@ -327,13 +331,13 @@ function update() {
     });
     if (GM.interactable.length > 0) {
       const nearest = GM.interactable[0];
-      if (nearest) {
+      if (nearest && nearest.npc?.instance) {
         GM.UI.interactText.setText("Interact");
-        GM.UI.interactText.x = nearest.npc.instance.x;
-        GM.UI.interactText.y = nearest.npc.instance.y;
+        GM.UI.interactText.x = nearest.npc?.instance?.x;
+        GM.UI.interactText.y = nearest.npc?.instance?.y;
         if (GM.keys.spacebar.isDown && config.canInteract) {
           config.canInteract = false;
-          const interaction = GM.interactable[0].npc?.interact?.(GM.player);
+          const interaction = nearest?.npc?.interact?.(GM.player, config);
           if (interaction) {
             handleInteraction(interaction);
           }
